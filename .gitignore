@@ -1,8 +1,5 @@
-# Compiled source code
-app/_build/
-
-# Packages
-node_modules/
+# Compiled TypeScript code
+app.build/
 
 # OS Files
 .DS_Store
