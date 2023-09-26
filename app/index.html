@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="../vendor/normalize.css/normalize.css">
+
+        <style>
+            html {
+                overflow: hidden;
+            }
+            .edge {
+                z-index: 2;
+                background-color: darkcyan;
+            }
+            #car {
+                z-index: 1;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="grid" style="display: grid; grid-template: 10vh 80vh 10vh / 10vw 80vw 10vw">
+            <div class="edge"></div>
+            <div class="edge"></div>
+            <div class="edge"></div>
+            <div class="edge"></div>
+            <div id="battlefield"></div>
+            <div class="edge"></div>
+            <div class="edge"></div>
+            <div class="edge"></div>
+            <div class="edge"></div>
+        </div>
+        <div id="car" style="width: 5vw; height: 5vh"></div>
+        <script src="game.js"></script>
+    </body>
+</html>
