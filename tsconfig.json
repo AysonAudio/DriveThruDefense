@@ -1,7 +1,6 @@
 {
     "compilerOptions": {
         "rootDir": "app",
-        "outDir": "app.build",
         "declaration": false,
         "module": "ESNext",
         "target": "ESNext",

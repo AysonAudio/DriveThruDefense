@@ -1,5 +1,5 @@
 # Compiled TypeScript code
-app.build/
+app/**/*.js
 
 # OS Files
 .DS_Store
