@@ -1,6 +1,5 @@
 {
     "compilerOptions": {
-        "rootDir": "app",
         "declaration": false,
         "module": "ESNext",
         "target": "ESNext",
