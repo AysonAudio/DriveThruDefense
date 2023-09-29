@@ -1,15 +1,56 @@
 // ##################################################################### //
-// ############################# File Paths ############################ //
+// ########################## Config Constants ######################### //
 // ##################################################################### //
 
-const GameTexture = {
+const TextureConfig = {
     Prefix: "../vendor/kenney_tiny-battle/tile_",
     Suffix: ".png",
 } as const;
 
+const BattlefieldConfig = {
+    cols: 16,
+    rows: 16,
+    textureIDs: ["0000", "0001", "0002"],
+} as const;
+
+const EnemyConfig = {
+    widthVW: 4,
+    heightVH: 4,
+    maxSpawns: 15,
+} as const;
+
+// ##################################################################### //
+// ############################### Types ############################### //
+// ##################################################################### //
+
+type Enemy = { elem: HTMLDivElement; xVW: number; yVH: number };
+
+/** All global game variables to cache when the game is loaded. */
+type GameCache = {
+    battlefieldElem?: HTMLDivElement;
+    playerElem?: HTMLDivElement;
+    playerLocation?: { xVW: number; yVH: number };
+    enemies?: Enemy[];
+};
+
+/** A function that needs access to a global game variable. */
+type GameFunc<Return> = (cache: GameCache) => Return;
+
 // ##################################################################### //
 // ########################## Helper Functions ######################### //
 // ##################################################################### //
+
+/**
+ * A decorator factory.
+ * Manages one global {@link GameCache} object and passes it to functions.
+ */
+
+const GAME: <Return>(func: GameFunc<Return>) => () => Return = (() => {
+    const globalGameCache: GameCache = {};
+    return (func) => {
+        return () => func(globalGameCache);
+    };
+})();
 
 /**
  * @param min Inclusive.
@@ -35,131 +76,127 @@ function pxToVH(px: number): number {
 // ########################### User Interface ########################## //
 // ##################################################################### //
 
-const BattlefieldConfig = {
-    cols: 16,
-    rows: 16,
-    textureIDs: ["0000", "0001", "0002"],
-} as const;
+export const initBattlefield: () => void = GAME((cache: GameCache) => {
+    cache.battlefieldElem = document.body.querySelector("#battlefield");
 
-const battlefieldElem: HTMLElement =
-    document.body.querySelector("#battlefield");
+    // Use CSS Grid to position tiles.
+    cache.battlefieldElem.style.display = "grid";
+    cache.battlefieldElem.style.gridTemplateRows =
+        "repeat(" + BattlefieldConfig.rows.toString() + "1fr)";
+    cache.battlefieldElem.style.gridTemplateColumns =
+        "repeat(" + BattlefieldConfig.cols.toString() + "1fr)";
 
-// Use CSS Grid to position tiles.
-battlefieldElem.style.display = "grid";
-battlefieldElem.style.gridTemplateRows =
-    "repeat(" + BattlefieldConfig.rows.toString() + "1fr)";
-battlefieldElem.style.gridTemplateColumns =
-    "repeat(" + BattlefieldConfig.cols.toString() + "1fr)";
+    // Fill grid with tiles having randomized sprites.
+    for (let i = 0; i < BattlefieldConfig.cols * BattlefieldConfig.rows; i++) {
+        const newTile = cache.battlefieldElem.appendChild(
+            document.createElement("div")
+        );
+        const textureID =
+            BattlefieldConfig.textureIDs[
+                getRandomInt(0, BattlefieldConfig.textureIDs.length)
+            ];
 
-// Fill grid with tiles having randomized sprites.
-for (let i = 0; i < BattlefieldConfig.cols * BattlefieldConfig.rows; i++) {
-    const newTile = battlefieldElem.appendChild(document.createElement("div"));
-    const textureID =
-        BattlefieldConfig.textureIDs[
-            getRandomInt(0, BattlefieldConfig.textureIDs.length)
-        ];
+        // Set sprite.
+        newTile.style.backgroundImage =
+            'url("' +
+            TextureConfig.Prefix +
+            textureID +
+            TextureConfig.Suffix +
+            '")';
 
-    // Set sprite.
-    newTile.style.backgroundImage =
-        'url("' + GameTexture.Prefix + textureID + GameTexture.Suffix + '")';
-
-    // Crop and scale sprite.
-    newTile.style.backgroundRepeat = "no-repeat";
-    newTile.style.backgroundSize = "100% 100%";
-}
+        // Crop and scale sprite.
+        newTile.style.backgroundRepeat = "no-repeat";
+        newTile.style.backgroundSize = "100% 100%";
+    }
+});
 
 // ##################################################################### //
 // ########################## Enemy Management ######################### //
 // ##################################################################### //
 
-type Enemy = { uid: number; elem: HTMLDivElement; xVW: number; yVH: number };
+/** Start spawning an enemy every 1000 ms. */
+export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
+    cache.enemies = [];
 
-const EnemyConfig = {
-    widthVW: 4,
-    heightVH: 4,
-    maxSpawns: 15,
-} as const;
+    setInterval(() => {
+        if (cache.enemies.length >= EnemyConfig.maxSpawns) return;
 
-let enemies: Enemy[] = [];
+        let newEnemy: Enemy = {
+            elem: document.body.appendChild(document.createElement("div")),
+            xVW: getRandomInt(15, 86),
+            yVH: getRandomInt(15, 86),
+        };
+        cache.enemies.push(newEnemy);
 
-// Spawn an enemy every 1000 ms.
-setInterval(() => {
-    let newEnemy: Enemy = {
-        uid: enemies.length,
-        elem: document.body.appendChild(document.createElement("div")),
-        xVW: getRandomInt(15, 86),
-        yVH: getRandomInt(15, 86),
-    };
-    enemies.push(newEnemy);
+        // Set appearance.
+        newEnemy.elem.style.backgroundColor = "darkgreen";
+        newEnemy.elem.style.width = EnemyConfig.widthVW.toString() + "vw";
+        newEnemy.elem.style.height = EnemyConfig.heightVH.toString() + "vh";
 
-    // Prevent spawning more than max.
-    if (enemies.length >= EnemyConfig.maxSpawns) return;
+        // Set sprite origin to center, instead of top left.
+        newEnemy.elem.style.transform = "translate(-50%, -50%)";
 
-    // Set appearance.
-    newEnemy.elem.style.backgroundColor = "darkgreen";
-    newEnemy.elem.style.width = EnemyConfig.widthVW.toString() + "vw";
-    newEnemy.elem.style.height = EnemyConfig.heightVH.toString() + "vh";
-
-    // Set sprite origin to center, instead of top left.
-    newEnemy.elem.style.transform = "translate(-50%, -50%)";
-
-    // Set position.
-    newEnemy.elem.style.position = "absolute";
-    newEnemy.elem.style.left = newEnemy.xVW.toString() + "vw";
-    newEnemy.elem.style.top = newEnemy.yVH.toString() + "vh";
-}, 1000);
+        // Set position.
+        newEnemy.elem.style.position = "absolute";
+        newEnemy.elem.style.left = newEnemy.xVW.toString() + "vw";
+        newEnemy.elem.style.top = newEnemy.yVH.toString() + "vh";
+    }, 1000);
+});
 
 // ##################################################################### //
 // ######################### Player Controller ######################### //
 // ##################################################################### //
 
-const playerElem = document.body.querySelector("#car") as HTMLElement;
-let playerPoint: { xVW: number; yVH: number } = { xVW: 0, yVH: 0 };
+export const initPlayer: () => void = GAME((cache: GameCache) => {
+    cache.playerElem = document.body.querySelector("#car");
+    cache.playerLocation = { xVW: 0, yVH: 0 };
 
-// Set position.
-playerElem.style.position = "absolute";
-playerElem.style.left = playerPoint.xVW.toString() + "vw";
-playerElem.style.top = playerPoint.yVH.toString() + "vh";
+    // Set position.
+    cache.playerElem.style.position = "absolute";
+    cache.playerElem.style.left = cache.playerLocation.xVW.toString() + "vw";
+    cache.playerElem.style.top = cache.playerLocation.yVH.toString() + "vh";
 
-// Set sprite.
-playerElem.style.backgroundImage =
-    'url("' + GameTexture.Prefix + "0167" + GameTexture.Suffix + '")';
+    // Set sprite.
+    cache.playerElem.style.backgroundImage =
+        'url("' + TextureConfig.Prefix + "0167" + TextureConfig.Suffix + '")';
 
-// Crop and scale sprite.
-playerElem.style.backgroundRepeat = "no-repeat";
-playerElem.style.backgroundSize = "100% 100%";
+    // Crop and scale sprite.
+    cache.playerElem.style.backgroundRepeat = "no-repeat";
+    cache.playerElem.style.backgroundSize = "100% 100%";
 
-// Set sprite origin to center, instead of top left.
-playerElem.style.transform = "translate(-50%, -50%) rotate(270deg)";
+    // Set sprite origin to center, instead of top left.
+    cache.playerElem.style.transform = "translate(-50%, -50%) rotate(270deg)";
 
-// CAR GO VROOM (vertically).
-setInterval(() => {
-    if (--playerPoint.yVH < 0) playerPoint.yVH = 100;
-    playerElem.style.top = playerPoint.yVH.toString() + "vh";
-}, 10);
+    // CAR GO VROOM (vertically).
+    setInterval(() => {
+        if (--cache.playerLocation.yVH < 0) cache.playerLocation.yVH = 100;
+        cache.playerElem.style.top = cache.playerLocation.yVH.toString() + "vh";
+    }, 10);
 
-// Bind player horizontal position to mouse.
-document.addEventListener("mousemove", (event) => {
-    playerPoint.xVW = pxToVW(event.clientX);
-    playerElem.style.left = playerPoint.xVW.toString() + "vw";
-});
-
-// Kill enemies that collide with player.
-setInterval(() => {
-    enemies.forEach((enemy, index) => {
-        if (
-            playerPoint.xVW > enemy.xVW - EnemyConfig.widthVW &&
-            playerPoint.xVW < enemy.xVW + EnemyConfig.widthVW &&
-            playerPoint.yVH > enemy.yVH - EnemyConfig.heightVH &&
-            playerPoint.yVH < enemy.yVH + EnemyConfig.heightVH
-        ) {
-            enemy.elem.remove();
-
-            // Update array without breaking iterator.
-            enemies[index] = undefined;
-        }
-
-        // Remove empty spots in array
-        enemies = enemies.filter(Boolean);
+    // Bind player horizontal position to mouse.
+    document.addEventListener("mousemove", (event) => {
+        cache.playerLocation.xVW = pxToVW(event.clientX);
+        cache.playerElem.style.left =
+            cache.playerLocation.xVW.toString() + "vw";
     });
-}, 10);
+
+    // Kill enemies that collide with player.
+    setInterval(() => {
+        cache.enemies?.forEach((enemy, index) => {
+            if (
+                cache.playerLocation.xVW > enemy.xVW - EnemyConfig.widthVW &&
+                cache.playerLocation.xVW < enemy.xVW + EnemyConfig.widthVW &&
+                cache.playerLocation.yVH > enemy.yVH - EnemyConfig.heightVH &&
+                cache.playerLocation.yVH < enemy.yVH + EnemyConfig.heightVH
+            ) {
+                enemy.elem.remove();
+
+                // Update array without breaking iterator.
+                cache.enemies[index] = undefined;
+            }
+        });
+
+        // Remove empty spots in array.
+        cache.enemies = cache.enemies.filter(Boolean);
+    }, 10);
+});

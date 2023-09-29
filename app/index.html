@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" href="../vendor/normalize.css/normalize.css">
+        <link rel="stylesheet" href="../vendor/normalize.css/normalize.css" />
 
         <style>
             html {
@@ -18,7 +18,13 @@
     </head>
 
     <body>
-        <div id="grid" style="display: grid; grid-template: 10vh 80vh 10vh / 10vw 80vw 10vw">
+        <div
+            id="grid"
+            style="
+                display: grid;
+                grid-template: 10vh 80vh 10vh / 10vw 80vw 10vw;
+            "
+        >
             <div class="edge"></div>
             <div class="edge"></div>
             <div class="edge"></div>
@@ -30,6 +36,6 @@
             <div class="edge"></div>
         </div>
         <div id="car" style="width: 5vw; height: 5vh"></div>
-        <script src="game.js"></script>
+        <script type="module" src="main.js"></script>
     </body>
 </html>
