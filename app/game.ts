@@ -35,6 +35,11 @@ const PickupTypes = {
     shop: "shop",
 } as const;
 
+const Levels = {
+    battlefield: "battlefield",
+    shop: "shop",
+} as const;
+
 // ##################################################################### //
 // ############################### Types ############################### //
 // ##################################################################### //
@@ -46,8 +51,11 @@ type Enemy = Entity & {};
 type PickupType = (typeof PickupTypes)[keyof typeof PickupTypes];
 type Pickup = Entity & { type: PickupType };
 
+type LevelName = (typeof Levels)[keyof typeof Levels];
+
 /** All global game variables to cache when the game is loaded. */
 type GameCache = {
+    levelsElem: HTMLDivElement;
     battlefieldElem: HTMLDivElement;
     playerElem: HTMLDivElement;
     playerLocation: { xVW: number; yVH: number };
@@ -57,7 +65,7 @@ type GameCache = {
 };
 
 /** A function that needs access to a global game variable. */
-type GameFunc<Return> = (cache: GameCache) => Return;
+type GameFunc<Return> = (cache: GameCache, ...args) => Return;
 
 // ##################################################################### //
 // ########################## Helper Functions ######################### //
@@ -68,8 +76,9 @@ type GameFunc<Return> = (cache: GameCache) => Return;
  * Manages one global {@link GameCache} object and passes it to functions.
  */
 
-const GAME: <Return>(func: GameFunc<Return>) => () => Return = (() => {
+const GAME: <Return>(func: GameFunc<Return>) => (...args) => Return = (() => {
     const globalGameCache: GameCache = {
+        levelsElem: document.body.querySelector("#levels"),
         battlefieldElem: document.body.querySelector("#battlefield"),
         playerElem: document.body.querySelector("#car"),
         playerLocation: { xVW: 0, yVH: 0 },
@@ -79,7 +88,7 @@ const GAME: <Return>(func: GameFunc<Return>) => () => Return = (() => {
     };
 
     return (func) => {
-        return () => func(globalGameCache);
+        return (...args) => func(globalGameCache, ...args);
     };
 })();
 
@@ -104,11 +113,26 @@ function pxToVH(px: number): number {
 }
 
 // ##################################################################### //
-// ################################# UI ################################ //
+// ############################### Levels ############################## //
 // ##################################################################### //
 
 /**
- * Create the area with player and enemies.
+ * Switch to a level.
+ * Each level is a div in #levels.
+ * Toggles .off class to switch levels.
+ */
+
+const switchLevel: (levelName: LevelName) => void = GAME(
+    (cache: GameCache, levelName: LevelName) => {
+        for (const levelElem of cache.levelsElem.children) {
+            if (levelElem.id == levelName) levelElem.classList.remove("off");
+            else levelElem.classList.add("off");
+        }
+    }
+);
+
+/**
+ * Create the main combat level.
  */
 
 export const initBattlefield: () => void = GAME((cache: GameCache) => {
@@ -145,6 +169,11 @@ export const initBattlefield: () => void = GAME((cache: GameCache) => {
     // Hide cursor over battlefield.
     cache.battlefieldElem.style.cursor = "none";
 });
+
+/**
+ * Create the level where player spends gold on upgrades.
+ * Switch to this level when player hits a shop pickup.
+ */
 
 // ##################################################################### //
 // ############################### Spawns ############################## //
@@ -185,6 +214,9 @@ function spawnEntity({
     // Hide cursor over entity.
     newEntity.elem.style.cursor = "none";
 
+    // Set z-index under player.
+    newEntity.elem.style.zIndex = "1;";
+
     return newEntity;
 }
 
@@ -212,23 +244,20 @@ export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
  */
 
 export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
+    const pickupTypes = Object.keys(PickupTypes) as PickupType[];
+
     setInterval(() => {
-        const pickupTypes = Object.keys(PickupTypes) as PickupType[];
         let newPickup: Pickup = {
             ...spawnEntity({
-                bgCSS: "almond",
+                bgCSS: "yellow",
                 widthVW: PickupConfig.widthVW,
                 heightVH: PickupConfig.heightVH,
             }),
             type: pickupTypes[getRandomInt(0, pickupTypes.length)],
         };
-        cache.pickups.push(newPickup);
 
-        // Depending on pickup type, do stuff when player collides.
-        switch (newPickup.type) {
-            case "shop":
-        }
-    });
+        cache.pickups.push(newPickup);
+    }, PickupConfig.spawnTimeMS);
 });
 
 // ##################################################################### //
@@ -258,11 +287,69 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
     // Set sprite origin to center, instead of top left.
     cache.playerElem.style.transform = "translate(-50%, -50%) rotate(270deg)";
 
+    /** Do something when player collides. */
+    function checkCollision({
+        entities,
+        entityWidthVW,
+        entityHeightVH,
+        doCollision,
+        removeCollided = true,
+    }: {
+        entities: Entity[];
+        entityWidthVW: number;
+        entityHeightVH: number;
+        doCollision: (entity: Entity) => void;
+        removeCollided?: Boolean;
+    }) {
+        for (let i = entities.length - 1; i >= 0; i--) {
+            const entity = entities[i];
+
+            if (
+                cache.playerLocation.xVW > entity.xVW - entityWidthVW &&
+                cache.playerLocation.xVW < entity.xVW + entityWidthVW &&
+                cache.playerLocation.yVH > entity.yVH - entityHeightVH &&
+                cache.playerLocation.yVH < entity.yVH + entityHeightVH
+            ) {
+                doCollision(entity);
+
+                if (removeCollided) {
+                    entity.elem.remove();
+                    entities.splice(i, 1);
+                }
+            }
+        }
+    }
+
     // CAR GO VROOM (vertically).
     setInterval(() => {
         if (--cache.playerLocation.yVH < 0) cache.playerLocation.yVH = 100;
         cache.playerElem.style.top = cache.playerLocation.yVH.toString() + "vh";
-    }, 10);
+
+        // Kill enemies on collision.
+        checkCollision({
+            entities: cache.enemies,
+            entityWidthVW: EnemyConfig.widthVW,
+            entityHeightVH: EnemyConfig.heightVH,
+            doCollision: () => {
+                // +1 gold per kill
+                let gold = Number(cache.goldCounterElem.innerHTML);
+                cache.goldCounterElem.innerHTML = (++gold).toString();
+            },
+        });
+
+        // Do stuff on pickup collision.
+        checkCollision({
+            entities: cache.pickups,
+            entityWidthVW: PickupConfig.widthVW,
+            entityHeightVH: PickupConfig.heightVH,
+            doCollision: (pickup: Pickup) => {
+                switch (pickup.type) {
+                    case "shop":
+                        switchLevel("shop");
+                }
+            },
+        });
+    }, PlayerConfig.moveTimeMS);
 
     // Bind player horizontal position to mouse.
     document.addEventListener("mousemove", (event) => {
@@ -270,30 +357,6 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
         cache.playerElem.style.left =
             cache.playerLocation.xVW.toString() + "vw";
     });
-
-    // Kill enemies that collide with player.
-    setInterval(() => {
-        cache.enemies?.forEach((enemy, index) => {
-            if (
-                cache.playerLocation.xVW > enemy.xVW - PickupConfig.widthVW &&
-                cache.playerLocation.xVW < enemy.xVW + EnemyConfig.widthVW &&
-                cache.playerLocation.yVH > enemy.yVH - EnemyConfig.heightVH &&
-                cache.playerLocation.yVH < enemy.yVH + EnemyConfig.heightVH
-            ) {
-                enemy.elem.remove();
-
-                // Update array without breaking iterator.
-                cache.enemies[index] = undefined;
-
-                // +1 gold per kill
-                let gold = Number(cache.goldCounterElem.innerHTML);
-                cache.goldCounterElem.innerHTML = (++gold).toString();
-            }
-        });
-
-        // Remove empty spots in array.
-        cache.enemies = cache.enemies.filter(Boolean);
-    }, PlayerConfig.moveTimeMS);
 
     // Hide cursor over car.
     cache.playerElem.style.cursor = "none";
