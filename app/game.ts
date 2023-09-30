@@ -212,16 +212,22 @@ export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
  */
 
 export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
-    const pickupTypes = Object.keys(PickupTypes) as PickupType[];
-
     setInterval(() => {
+        const pickupTypes = Object.keys(PickupTypes) as PickupType[];
         let newPickup: Pickup = {
-            elem: document.body.appendChild(document.createElement("div")),
-            xVW: getRandomInt(15, 86),
-            yVH: getRandomInt(15, 86),
+            ...spawnEntity({
+                bgCSS: "almond",
+                widthVW: PickupConfig.widthVW,
+                heightVH: PickupConfig.heightVH,
+            }),
             type: pickupTypes[getRandomInt(0, pickupTypes.length)],
         };
         cache.pickups.push(newPickup);
+
+        // Depending on pickup type, do stuff when player collides.
+        switch (newPickup.type) {
+            case "shop":
+        }
     });
 });
 
