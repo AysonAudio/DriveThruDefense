@@ -73,8 +73,12 @@ function pxToVH(px: number): number {
 }
 
 // ##################################################################### //
-// ########################### User Interface ########################## //
+// ################################# UI ################################ //
 // ##################################################################### //
+
+/**
+ * Create the area with player and enemies.
+ */
 
 export const initBattlefield: () => void = GAME((cache: GameCache) => {
     cache.battlefieldElem = document.body.querySelector("#battlefield");
@@ -82,9 +86,9 @@ export const initBattlefield: () => void = GAME((cache: GameCache) => {
     // Use CSS Grid to position tiles.
     cache.battlefieldElem.style.display = "grid";
     cache.battlefieldElem.style.gridTemplateRows =
-        "repeat(" + BattlefieldConfig.rows.toString() + "1fr)";
+        "repeat(" + BattlefieldConfig.rows.toString() + ", 1fr)";
     cache.battlefieldElem.style.gridTemplateColumns =
-        "repeat(" + BattlefieldConfig.cols.toString() + "1fr)";
+        "repeat(" + BattlefieldConfig.cols.toString() + ", 1fr)";
 
     // Fill grid with tiles having randomized sprites.
     for (let i = 0; i < BattlefieldConfig.cols * BattlefieldConfig.rows; i++) {
@@ -111,10 +115,13 @@ export const initBattlefield: () => void = GAME((cache: GameCache) => {
 });
 
 // ##################################################################### //
-// ########################## Enemy Management ######################### //
+// ############################## Enemies ############################## //
 // ##################################################################### //
 
-/** Start spawning an enemy every 1000 ms. */
+/**
+ * Start spawning an enemy every 1000 ms.
+ */
+
 export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
     cache.enemies = [];
 
@@ -146,6 +153,12 @@ export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
 // ##################################################################### //
 // ######################### Player Controller ######################### //
 // ##################################################################### //
+
+/**
+ * Create player controller.
+ * Car drives up forever. Loops around to bottom.
+ * Kills enemies on collision.
+ */
 
 export const initPlayer: () => void = GAME((cache: GameCache) => {
     cache.playerElem = document.body.querySelector("#car");
