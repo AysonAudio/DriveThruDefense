@@ -112,6 +112,9 @@ export const initBattlefield: () => void = GAME((cache: GameCache) => {
         newTile.style.backgroundRepeat = "no-repeat";
         newTile.style.backgroundSize = "100% 100%";
     }
+
+    // Hide cursor over battlefield.
+    cache.battlefieldElem.style.cursor = "none";
 });
 
 // ##################################################################### //
@@ -212,4 +215,7 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
         // Remove empty spots in array.
         cache.enemies = cache.enemies.filter(Boolean);
     }, 10);
+
+    // Hide cursor over car.
+    cache.playerElem.style.cursor = "none";
 });
