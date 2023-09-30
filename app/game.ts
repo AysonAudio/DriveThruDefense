@@ -2,6 +2,10 @@
 // ########################## Config Constants ######################### //
 // ##################################################################### //
 
+const PlayerConfig = {
+    moveTimeMS: 10,
+};
+
 const TextureConfig = {
     Prefix: "../vendor/kenney_tiny-battle/tile_",
     Suffix: ".png",
@@ -17,6 +21,7 @@ const EnemyConfig = {
     widthVW: 4,
     heightVH: 4,
     maxSpawns: 15,
+    spawnTimeMS: 1000,
 } as const;
 
 // ##################################################################### //
@@ -124,11 +129,11 @@ export const initBattlefield: () => void = GAME((cache: GameCache) => {
 });
 
 // ##################################################################### //
-// ############################## Enemies ############################## //
+// ############################### Spawns ############################## //
 // ##################################################################### //
 
 /**
- * Start spawning an enemy every 1000 ms.
+ * Spawn an enemy periodically.
  */
 
 export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
@@ -157,8 +162,17 @@ export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
 
         // Hide cursor over enemy.
         newEnemy.elem.style.cursor = "none";
-    }, 1000);
+    }, EnemyConfig.spawnTimeMS);
 });
+
+/**
+ * Spawn a shop every 5000 ms.
+ * If car runs over shop, teleport to shop area.
+ * Car runs over items to buy them.
+ * Car runs over exit to return to battlefield.
+ */
+
+export const initShopSpawner: () => void = GAME((cache: GameCache) => {});
 
 // ##################################################################### //
 // ######################### Player Controller ######################### //
@@ -222,7 +236,7 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
 
         // Remove empty spots in array.
         cache.enemies = cache.enemies.filter(Boolean);
-    }, 10);
+    }, PlayerConfig.moveTimeMS);
 
     // Hide cursor over car.
     cache.playerElem.style.cursor = "none";
