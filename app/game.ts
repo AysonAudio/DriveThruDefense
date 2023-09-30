@@ -154,6 +154,9 @@ export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
         newEnemy.elem.style.position = "absolute";
         newEnemy.elem.style.left = newEnemy.xVW.toString() + "vw";
         newEnemy.elem.style.top = newEnemy.yVH.toString() + "vh";
+
+        // Hide cursor over enemy.
+        newEnemy.elem.style.cursor = "none";
     }, 1000);
 });
 
