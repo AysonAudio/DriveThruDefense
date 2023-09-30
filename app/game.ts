@@ -24,11 +24,27 @@ const EnemyConfig = {
     spawnTimeMS: 1000,
 } as const;
 
+const PickupConfig = {
+    widthVW: 4,
+    heightVH: 4,
+    spawnTimeMS: 2000,
+    shopChance: 0.4,
+} as const;
+
+const PickupTypes = {
+    shop: "shop",
+} as const;
+
 // ##################################################################### //
 // ############################### Types ############################### //
 // ##################################################################### //
 
-type Enemy = { elem: HTMLDivElement; xVW: number; yVH: number };
+type Entity = { elem: HTMLDivElement; xVW: number; yVH: number };
+
+type Enemy = Entity & {};
+
+type PickupType = (typeof PickupTypes)[keyof typeof PickupTypes];
+type Pickup = Entity & { type: PickupType };
 
 /** All global game variables to cache when the game is loaded. */
 type GameCache = {
@@ -36,6 +52,7 @@ type GameCache = {
     playerElem: HTMLDivElement;
     playerLocation: { xVW: number; yVH: number };
     enemies: Enemy[];
+    pickups: Pickup[];
     goldCounterElem: HTMLSpanElement;
 };
 
@@ -56,6 +73,7 @@ const GAME: <Return>(func: GameFunc<Return>) => () => Return = (() => {
         battlefieldElem: document.body.querySelector("#battlefield"),
         playerElem: document.body.querySelector("#car"),
         playerLocation: { xVW: 0, yVH: 0 },
+        pickups: [],
         enemies: [],
         goldCounterElem: document.body.querySelector("#gold-counter"),
     };
@@ -133,6 +151,44 @@ export const initBattlefield: () => void = GAME((cache: GameCache) => {
 // ##################################################################### //
 
 /**
+ * Spawn an enemy or pickup.
+ */
+
+function spawnEntity({
+    bgCSS,
+    widthVW,
+    heightVH,
+}: {
+    bgCSS: string;
+    widthVW: number;
+    heightVH: number;
+}): Entity {
+    let newEntity: Entity = {
+        elem: document.body.appendChild(document.createElement("div")),
+        xVW: getRandomInt(15, 86),
+        yVH: getRandomInt(15, 86),
+    };
+
+    // Set appearance.
+    newEntity.elem.style.background = bgCSS;
+    newEntity.elem.style.width = widthVW.toString() + "vw";
+    newEntity.elem.style.height = heightVH.toString() + "vh";
+
+    // Set sprite origin to center, instead of top left.
+    newEntity.elem.style.transform = "translate(-50%, -50%)";
+
+    // Set position.
+    newEntity.elem.style.position = "absolute";
+    newEntity.elem.style.left = newEntity.xVW.toString() + "vw";
+    newEntity.elem.style.top = newEntity.yVH.toString() + "vh";
+
+    // Hide cursor over entity.
+    newEntity.elem.style.cursor = "none";
+
+    return newEntity;
+}
+
+/**
  * Spawn an enemy periodically.
  */
 
@@ -140,39 +196,34 @@ export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
     setInterval(() => {
         if (cache.enemies.length >= EnemyConfig.maxSpawns) return;
 
-        let newEnemy: Enemy = {
-            elem: document.body.appendChild(document.createElement("div")),
-            xVW: getRandomInt(15, 86),
-            yVH: getRandomInt(15, 86),
-        };
+        let newEnemy: Enemy = spawnEntity({
+            bgCSS: "darkgreen",
+            widthVW: EnemyConfig.widthVW,
+            heightVH: EnemyConfig.heightVH,
+        });
         cache.enemies.push(newEnemy);
-
-        // Set appearance.
-        newEnemy.elem.style.backgroundColor = "darkgreen";
-        newEnemy.elem.style.width = EnemyConfig.widthVW.toString() + "vw";
-        newEnemy.elem.style.height = EnemyConfig.heightVH.toString() + "vh";
-
-        // Set sprite origin to center, instead of top left.
-        newEnemy.elem.style.transform = "translate(-50%, -50%)";
-
-        // Set position.
-        newEnemy.elem.style.position = "absolute";
-        newEnemy.elem.style.left = newEnemy.xVW.toString() + "vw";
-        newEnemy.elem.style.top = newEnemy.yVH.toString() + "vh";
-
-        // Hide cursor over enemy.
-        newEnemy.elem.style.cursor = "none";
     }, EnemyConfig.spawnTimeMS);
 });
 
 /**
- * Spawn a shop every 5000 ms.
- * If car runs over shop, teleport to shop area.
- * Car runs over items to buy them.
- * Car runs over exit to return to battlefield.
+ * Spawn a pickup periodically.
+ * List of pickups:
+ * - Shop: Teleport to shop level.
  */
 
-export const initShopSpawner: () => void = GAME((cache: GameCache) => {});
+export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
+    const pickupTypes = Object.keys(PickupTypes) as PickupType[];
+
+    setInterval(() => {
+        let newPickup: Pickup = {
+            elem: document.body.appendChild(document.createElement("div")),
+            xVW: getRandomInt(15, 86),
+            yVH: getRandomInt(15, 86),
+            type: pickupTypes[getRandomInt(0, pickupTypes.length)],
+        };
+        cache.pickups.push(newPickup);
+    });
+});
 
 // ##################################################################### //
 // ######################### Player Controller ######################### //
@@ -218,7 +269,7 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
     setInterval(() => {
         cache.enemies?.forEach((enemy, index) => {
             if (
-                cache.playerLocation.xVW > enemy.xVW - EnemyConfig.widthVW &&
+                cache.playerLocation.xVW > enemy.xVW - PickupConfig.widthVW &&
                 cache.playerLocation.xVW < enemy.xVW + EnemyConfig.widthVW &&
                 cache.playerLocation.yVH > enemy.yVH - EnemyConfig.heightVH &&
                 cache.playerLocation.yVH < enemy.yVH + EnemyConfig.heightVH
