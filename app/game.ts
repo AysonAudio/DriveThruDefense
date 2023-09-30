@@ -46,7 +46,13 @@ type GameFunc<Return> = (cache: GameCache) => Return;
  */
 
 const GAME: <Return>(func: GameFunc<Return>) => () => Return = (() => {
-    const globalGameCache: GameCache = {};
+    const globalGameCache: GameCache = {
+        battlefieldElem: document.body.querySelector("#battlefield"),
+        playerElem: document.body.querySelector("#car"),
+        playerLocation: { xVW: 0, yVH: 0 },
+        enemies: [],
+    };
+
     return (func) => {
         return () => func(globalGameCache);
     };
@@ -81,8 +87,6 @@ function pxToVH(px: number): number {
  */
 
 export const initBattlefield: () => void = GAME((cache: GameCache) => {
-    cache.battlefieldElem = document.body.querySelector("#battlefield");
-
     // Use CSS Grid to position tiles.
     cache.battlefieldElem.style.display = "grid";
     cache.battlefieldElem.style.gridTemplateRows =
@@ -126,8 +130,6 @@ export const initBattlefield: () => void = GAME((cache: GameCache) => {
  */
 
 export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
-    cache.enemies = [];
-
     setInterval(() => {
         if (cache.enemies.length >= EnemyConfig.maxSpawns) return;
 
@@ -164,9 +166,6 @@ export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
  */
 
 export const initPlayer: () => void = GAME((cache: GameCache) => {
-    cache.playerElem = document.body.querySelector("#car");
-    cache.playerLocation = { xVW: 0, yVH: 0 };
-
     // Set position.
     cache.playerElem.style.position = "absolute";
     cache.playerElem.style.left = cache.playerLocation.xVW.toString() + "vw";
