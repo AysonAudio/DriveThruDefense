@@ -27,10 +27,11 @@ type Enemy = { elem: HTMLDivElement; xVW: number; yVH: number };
 
 /** All global game variables to cache when the game is loaded. */
 type GameCache = {
-    battlefieldElem?: HTMLDivElement;
-    playerElem?: HTMLDivElement;
-    playerLocation?: { xVW: number; yVH: number };
-    enemies?: Enemy[];
+    battlefieldElem: HTMLDivElement;
+    playerElem: HTMLDivElement;
+    playerLocation: { xVW: number; yVH: number };
+    enemies: Enemy[];
+    goldCounterElem: HTMLSpanElement;
 };
 
 /** A function that needs access to a global game variable. */
@@ -51,6 +52,7 @@ const GAME: <Return>(func: GameFunc<Return>) => () => Return = (() => {
         playerElem: document.body.querySelector("#car"),
         playerLocation: { xVW: 0, yVH: 0 },
         enemies: [],
+        goldCounterElem: document.body.querySelector("#gold-counter"),
     };
 
     return (func) => {
@@ -208,6 +210,10 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
 
                 // Update array without breaking iterator.
                 cache.enemies[index] = undefined;
+
+                // +1 gold per kill
+                let gold = Number(cache.goldCounterElem.innerHTML);
+                cache.goldCounterElem.innerHTML = (++gold).toString();
             }
         });
 

@@ -7,26 +7,46 @@
             html {
                 overflow: hidden;
             }
+            #main {
+                display: grid;
+                grid-template: 10vh 80vh 10vh / 10vw 80vw 10vw;
+            }
             .edge {
                 z-index: 2;
                 background-color: darkcyan;
+            }
+            .flex {
+                display: flex;
+                flex-wrap: wrap;
+                align-content: center;
+            }
+            #gold {
+                margin-left: 5%;
+                font-family: "Young Serif", serif;
+                font-size: 6vh;
             }
             #car {
                 z-index: 1;
             }
         </style>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Young+Serif&display=swap"
+            rel="stylesheet"
+        />
     </head>
 
     <body>
-        <div
-            id="grid"
-            style="
-                display: grid;
-                grid-template: 10vh 80vh 10vh / 10vw 80vw 10vw;
-            "
-        >
+        <div id="main">
             <div class="edge"></div>
-            <div class="edge"></div>
+            <div class="edge flex">
+                <div id="gold">
+                    <span id="gold-title">Gold:</span>
+                    <span id="gold-counter">0</span>
+                </div>
+            </div>
             <div class="edge"></div>
             <div class="edge"></div>
             <div id="battlefield"></div>
