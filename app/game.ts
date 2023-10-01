@@ -75,7 +75,8 @@ type GameCache = {
     levelMeadowElem: HTMLDivElement;
     levelShopElem: HTMLDivElement;
     uiGoldElem: HTMLSpanElement;
-    entitiesParentElem: HTMLDivElement;
+    enemiesParentElem: HTMLDivElement;
+    pickupsParentElem: HTMLDivElement;
     carElem: HTMLDivElement;
 
     level: LevelName;
@@ -105,7 +106,8 @@ const GAME: <Return>(func: GameFunc<Return>) => (...args) => Return = (() => {
         levelMeadowElem: document.body.querySelector("#levels > #meadow"),
         levelShopElem: document.body.querySelector("#levels > #shop"),
         uiGoldElem: document.body.querySelector("#gold > .counter"),
-        entitiesParentElem: document.body.querySelector("#entities"),
+        enemiesParentElem: document.body.querySelector("#entities > #enemies"),
+        pickupsParentElem: document.body.querySelector("#entities > #pickups"),
         carElem: document.body.querySelector("#car"),
 
         level: "meadow",
@@ -160,6 +162,15 @@ const switchLevel: (levelName: LevelName) => void = GAME(
         for (const levelElem of cache.levelsParentElem.children) {
             if (levelElem.id == levelName) levelElem.classList.remove("off");
             else levelElem.classList.add("off");
+        }
+
+        // Hide enemies and pickups if not meadow.
+        if (levelName != "meadow") {
+            cache.enemiesParentElem.classList.add("off");
+            cache.pickupsParentElem.classList.add("off");
+        } else {
+            cache.enemiesParentElem.classList.remove("off");
+            cache.pickupsParentElem.classList.remove("off");
         }
     }
 );
@@ -265,7 +276,7 @@ export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
         });
 
         cache.enemies.push(newEnemy);
-        cache.entitiesParentElem.appendChild(newEnemy.elem);
+        cache.enemiesParentElem.appendChild(newEnemy.elem);
     }, EnemyConfig.spawnTimeMS);
 });
 
@@ -318,7 +329,7 @@ export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
                 type: pickupType,
             };
             cache.pickups.push(newPickup);
-            cache.entitiesParentElem.appendChild(newPickup.elem);
+            cache.pickupsParentElem.appendChild(newPickup.elem);
             cache.pickupCounts[pickupType]++;
         },
 
@@ -396,31 +407,33 @@ export const initCar: () => void = GAME((cache: GameCache) => {
         if (--cache.carLocation.yVH < 0) cache.carLocation.yVH = 100;
         cache.carElem.style.top = cache.carLocation.yVH.toString() + "vh";
 
-        // Kill enemies on collision.
-        checkCollision({
-            entities: cache.enemies,
-            entityWidthVW: EnemyConfig.widthVW,
-            entityHeightVH: EnemyConfig.heightVH,
-            doCollision: () => {
-                // +1 gold per kill
-                let gold = Number(cache.uiGoldElem.innerHTML);
-                cache.uiGoldElem.innerHTML = (++gold).toString();
-            },
-        });
+        // Kill enemies on collision if level is meadow.
+        if (cache.level == "meadow")
+            checkCollision({
+                entities: cache.enemies,
+                entityWidthVW: EnemyConfig.widthVW,
+                entityHeightVH: EnemyConfig.heightVH,
+                doCollision: () => {
+                    // +1 gold per kill
+                    let gold = Number(cache.uiGoldElem.innerHTML);
+                    cache.uiGoldElem.innerHTML = (++gold).toString();
+                },
+            });
 
-        // Do stuff on pickup collision.
-        checkCollision({
-            entities: cache.pickups,
-            entityWidthVW: PickupConfig.widthVW,
-            entityHeightVH: PickupConfig.heightVH,
-            doCollision: (pickup: Pickup) => {
-                cache.pickupCounts[pickup.type]--;
-                switch (pickup.type) {
-                    case "shop":
-                        switchLevel("shop");
-                }
-            },
-        });
+        // Do stuff on pickup collision if level is meadow.
+        if (cache.level == "meadow")
+            checkCollision({
+                entities: cache.pickups,
+                entityWidthVW: PickupConfig.widthVW,
+                entityHeightVH: PickupConfig.heightVH,
+                doCollision: (pickup: Pickup) => {
+                    cache.pickupCounts[pickup.type]--;
+                    switch (pickup.type) {
+                        case "shop":
+                            switchLevel("shop");
+                    }
+                },
+            });
     }, CarConfig.moveTimeMS);
 
     // Bind car horizontal position to mouse.
