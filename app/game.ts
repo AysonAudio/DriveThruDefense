@@ -75,6 +75,7 @@ type GameCache = {
     levelMeadowElem: HTMLDivElement;
     levelShopElem: HTMLDivElement;
     uiGoldElem: HTMLSpanElement;
+    entitiesParentElem: HTMLDivElement;
     carElem: HTMLDivElement;
 
     level: LevelName;
@@ -104,6 +105,7 @@ const GAME: <Return>(func: GameFunc<Return>) => (...args) => Return = (() => {
         levelMeadowElem: document.body.querySelector("#levels > #meadow"),
         levelShopElem: document.body.querySelector("#levels > #shop"),
         uiGoldElem: document.body.querySelector("#gold > .counter"),
+        entitiesParentElem: document.body.querySelector("#entities"),
         carElem: document.body.querySelector("#car"),
 
         level: "meadow",
@@ -196,9 +198,6 @@ export const initMeadowLevel: () => void = GAME((cache: GameCache) => {
         newTile.style.backgroundRepeat = "no-repeat";
         newTile.style.backgroundSize = "100% 100%";
     }
-
-    // Hide cursor over meadow.
-    cache.levelMeadowElem.style.cursor = "none";
 });
 
 /**
@@ -244,9 +243,6 @@ function spawnEntity({
     newEntity.elem.style.left = newEntity.xVW.toString() + "vw";
     newEntity.elem.style.top = newEntity.yVH.toString() + "vh";
 
-    // Hide cursor over entity.
-    newEntity.elem.style.cursor = "none";
-
     // Set z-index under car.
     newEntity.elem.style.zIndex = "1";
 
@@ -254,7 +250,7 @@ function spawnEntity({
 }
 
 /**
- * Spawn an enemy periodically.
+ * Spawn an enemy periodically on meadow level.
  */
 
 export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
@@ -269,6 +265,7 @@ export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
         });
 
         cache.enemies.push(newEnemy);
+        cache.entitiesParentElem.appendChild(newEnemy.elem);
     }, EnemyConfig.spawnTimeMS);
 });
 
@@ -292,6 +289,7 @@ export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
         (totalChance: number) => {
             let diceRoll = Math.random();
             let pickupType: PickupType;
+            let newPickup: Pickup;
 
             // Roll random type.
             for (const key in pickupChances) {
@@ -311,14 +309,16 @@ export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
             if (!pickupType) return;
 
             // Spawn a new entity.
-            cache.pickups.push({
+            newPickup = {
                 ...spawnEntity({
                     bgCSS: "yellow",
                     widthVW: PickupConfig.widthVW,
                     heightVH: PickupConfig.heightVH,
                 }),
                 type: pickupType,
-            });
+            };
+            cache.pickups.push(newPickup);
+            cache.entitiesParentElem.appendChild(newPickup.elem);
             cache.pickupCounts[pickupType]++;
         },
 
@@ -388,6 +388,10 @@ export const initCar: () => void = GAME((cache: GameCache) => {
     }
 
     // CAR GO VROOM
+    // Move car upwards every tick.
+    // Loop around to bottom when it reaches top.
+    // Check car collision every tick and do stuff.
+
     setInterval(() => {
         if (--cache.carLocation.yVH < 0) cache.carLocation.yVH = 100;
         cache.carElem.style.top = cache.carLocation.yVH.toString() + "vh";
@@ -424,7 +428,4 @@ export const initCar: () => void = GAME((cache: GameCache) => {
         cache.carLocation.xVW = pxToVW(event.clientX);
         cache.carElem.style.left = cache.carLocation.xVW.toString() + "vw";
     });
-
-    // Hide cursor over car.
-    cache.carElem.style.cursor = "none";
 });

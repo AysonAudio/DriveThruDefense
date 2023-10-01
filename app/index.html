@@ -17,9 +17,9 @@
                 overflow: hidden;
             }
 
-            .no-cursor {
+            .no-cursor,
+            .no-cursor * {
                 cursor: none;
-                pointer-events: none;
             }
 
             /* Center children with flexbox. */
@@ -48,7 +48,7 @@
             <div class="edge"></div>
             <div class="edge"></div>
 
-            <div id="levels">
+            <div id="levels" class="no-cursor">
                 <div id="meadow"></div>
                 <div id="shop" class="off"></div>
             </div>
@@ -59,9 +59,11 @@
             <div class="edge"></div>
         </div>
 
-        <div id="player">
+        <div id="player" class="no-cursor">
             <div id="car"></div>
         </div>
+
+        <div id="entities" class="no-cursor"></div>
 
         <script type="module" src="main.js"></script>
     </body>
