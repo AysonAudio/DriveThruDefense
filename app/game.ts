@@ -286,7 +286,6 @@ export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
  */
 
 export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
-    const pickupTypes = Object.keys(PickupTypes) as PickupType[];
     let pickupChances = { ...PickupConfig.spawnChances };
     let totalChance = 0;
 
