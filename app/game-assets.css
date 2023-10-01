@@ -1,0 +1,47 @@
+#game-grid {
+    display: grid;
+    grid-template: 10vh 80vh 10vh / 10vw 80vw 10vw;
+}
+
+/* Init style */
+#car {
+    width: 5vw;
+    height: 5vh;
+}
+
+#shop {
+    background: blue;
+}
+
+/* Set car above level and below edges. */
+.edge {
+    z-index: 3;
+    background-color: darkcyan;
+}
+#car {
+    z-index: 2;
+}
+
+/* Stack all levels in middle of screen. */
+#levels {
+    position: relative;
+}
+#levels > * {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Switch levels by hiding and unhiding. */
+.off {
+    visibility: hidden;
+}
+
+/* Set resource counters font. */
+#gold {
+    margin-left: 5%;
+    font-family: "Young Serif", serif;
+    font-size: 6vh;
+}

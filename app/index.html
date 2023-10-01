@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <!-- Google Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Young+Serif&display=swap"
+            rel="stylesheet"
+        />
+
+        <!-- main styles -->
         <link rel="stylesheet" href="../vendor/normalize.css/normalize.css" />
 
         <style>
@@ -8,9 +17,9 @@
                 overflow: hidden;
             }
 
-            #main {
-                display: grid;
-                grid-template: 10vh 80vh 10vh / 10vw 80vw 10vw;
+            .no-cursor {
+                cursor: none;
+                pointer-events: none;
             }
 
             /* Center children with flexbox. */
@@ -19,70 +28,43 @@
                 flex-wrap: wrap;
                 align-content: center;
             }
-
-            /* Set car above level and below edges. */
-            .edge {
-                z-index: 3;
-                background-color: darkcyan;
-            }
-            #car {
-                z-index: 2;
-            }
-
-            /* Stack all levels in middle of screen. */
-            #levels {
-                position: relative;
-            }
-            #levels > * {
-                width: 100%;
-                height: 100%;
-                position: absolute;
-                top: 0;
-                left: 0;
-            }
-
-            /* Switch levels by hiding and unhiding. */
-            .off {
-                visibility: hidden;
-            }
-
-            /* Set resource counters font. */
-            #gold {
-                margin-left: 5%;
-                font-family: "Young Serif", serif;
-                font-size: 6vh;
-            }
         </style>
 
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            href="https://fonts.googleapis.com/css2?family=Young+Serif&display=swap"
-            rel="stylesheet"
-        />
+        <!-- game styles -->
+        <link rel="stylesheet" href="game-assets.css" />
     </head>
 
     <body>
-        <div id="main">
+        <div id="game-grid">
             <div class="edge"></div>
+
             <div class="edge flex">
                 <div id="gold">
                     <span id="gold-title">Gold:</span>
                     <span id="gold-counter">0</span>
                 </div>
             </div>
+
             <div class="edge"></div>
             <div class="edge"></div>
+
             <div id="levels">
                 <div id="battlefield"></div>
-                <div id="shop" class="off" style="background: blue"></div>
+                <div id="shop" class="off"></div>
             </div>
+
             <div class="edge"></div>
             <div class="edge"></div>
             <div class="edge"></div>
             <div class="edge"></div>
         </div>
-        <div id="car" style="width: 5vw; height: 5vh"></div>
+
+        <div id="player">
+            <div id="car"></div>
+        </div>
+
+        <div id="entities"></div>
+
         <script type="module" src="main.js"></script>
     </body>
 </html>
