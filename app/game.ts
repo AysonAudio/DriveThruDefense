@@ -2,20 +2,16 @@
 // ########################## Config Constants ######################### //
 // ##################################################################### //
 
-const PlayerConfig = {
-    moveTimeMS: 10,
-};
-
 const TextureConfig = {
     Prefix: "../vendor/kenney_tiny-battle/tile_",
     Suffix: ".png",
 } as const;
 
-const BattlefieldConfig = {
-    cols: 16,
-    rows: 16,
-    textureIDs: ["0000", "0001", "0002"],
-} as const;
+// ------------------------ //
+
+const CarConfig = {
+    moveTimeMS: 10,
+};
 
 const EnemyConfig = {
     widthVW: 4,
@@ -39,6 +35,14 @@ const PickupConfig = {
     },
 } as const;
 
+// -------- Levels -------- //
+
+const MeadowConfig = {
+    cols: 16,
+    rows: 16,
+    textureIDs: ["0000", "0001", "0002"],
+} as const;
+
 // ##################################################################### //
 // ############################### Enums ############################### //
 // ##################################################################### //
@@ -48,7 +52,7 @@ const PickupTypes = {
 } as const;
 
 const Levels = {
-    battlefield: "battlefield",
+    meadow: "meadow",
     shop: "shop",
 } as const;
 
@@ -67,17 +71,19 @@ type LevelName = (typeof Levels)[keyof typeof Levels];
 
 /** All global game variables to cache when the game is loaded. */
 type GameCache = {
-    levelsElem: HTMLDivElement;
-    battlefieldElem: HTMLDivElement;
-    goldCounterElem: HTMLSpanElement;
-    playerElem: HTMLDivElement;
-    playerLocation: { xVW: number; yVH: number };
-    currLevel: LevelName;
+    levelsParentElem: HTMLDivElement;
+    levelMeadowElem: HTMLDivElement;
+    levelShopElem: HTMLDivElement;
+    uiGoldElem: HTMLSpanElement;
+    carElem: HTMLDivElement;
+
+    level: LevelName;
     enemies: Enemy[];
     pickups: Pickup[];
     pickupCounts: {
         [key in PickupType]: number;
     };
+    carLocation: { xVW: number; yVH: number };
 };
 
 /** A function that needs access to a global game variable. */
@@ -94,12 +100,14 @@ type GameFunc<Return> = (cache: GameCache, ...args) => Return;
 
 const GAME: <Return>(func: GameFunc<Return>) => (...args) => Return = (() => {
     const globalGameCache: GameCache = {
-        levelsElem: document.body.querySelector("#levels"),
-        goldCounterElem: document.body.querySelector("#gold-counter"),
-        battlefieldElem: document.body.querySelector("#battlefield"),
-        playerElem: document.body.querySelector("#car"),
-        playerLocation: { xVW: 0, yVH: 0 },
-        currLevel: "battlefield",
+        levelsParentElem: document.body.querySelector("#levels"),
+        levelMeadowElem: document.body.querySelector("#levels > #meadow"),
+        levelShopElem: document.body.querySelector("#levels > #shop"),
+        uiGoldElem: document.body.querySelector("#gold > .counter"),
+        carElem: document.body.querySelector("#car"),
+
+        level: "meadow",
+        carLocation: { xVW: 0, yVH: 0 },
         enemies: [],
         pickups: [],
         pickupCounts: {
@@ -146,8 +154,8 @@ function pxToVH(px: number): number {
 
 const switchLevel: (levelName: LevelName) => void = GAME(
     (cache: GameCache, levelName: LevelName) => {
-        cache.currLevel = levelName;
-        for (const levelElem of cache.levelsElem.children) {
+        cache.level = levelName;
+        for (const levelElem of cache.levelsParentElem.children) {
             if (levelElem.id == levelName) levelElem.classList.remove("off");
             else levelElem.classList.add("off");
         }
@@ -158,22 +166,22 @@ const switchLevel: (levelName: LevelName) => void = GAME(
  * Create the main combat level.
  */
 
-export const initBattlefield: () => void = GAME((cache: GameCache) => {
+export const initMeadowLevel: () => void = GAME((cache: GameCache) => {
     // Use CSS Grid to position tiles.
-    cache.battlefieldElem.style.display = "grid";
-    cache.battlefieldElem.style.gridTemplateRows =
-        "repeat(" + BattlefieldConfig.rows.toString() + ", 1fr)";
-    cache.battlefieldElem.style.gridTemplateColumns =
-        "repeat(" + BattlefieldConfig.cols.toString() + ", 1fr)";
+    cache.levelMeadowElem.style.display = "grid";
+    cache.levelMeadowElem.style.gridTemplateRows =
+        "repeat(" + MeadowConfig.rows.toString() + ", 1fr)";
+    cache.levelMeadowElem.style.gridTemplateColumns =
+        "repeat(" + MeadowConfig.cols.toString() + ", 1fr)";
 
     // Fill grid with tiles having randomized sprites.
-    for (let i = 0; i < BattlefieldConfig.cols * BattlefieldConfig.rows; i++) {
-        const newTile = cache.battlefieldElem.appendChild(
+    for (let i = 0; i < MeadowConfig.cols * MeadowConfig.rows; i++) {
+        const newTile = cache.levelMeadowElem.appendChild(
             document.createElement("div")
         );
         const textureID =
-            BattlefieldConfig.textureIDs[
-                getRandomInt(0, BattlefieldConfig.textureIDs.length)
+            MeadowConfig.textureIDs[
+                getRandomInt(0, MeadowConfig.textureIDs.length)
             ];
 
         // Set sprite.
@@ -189,13 +197,13 @@ export const initBattlefield: () => void = GAME((cache: GameCache) => {
         newTile.style.backgroundSize = "100% 100%";
     }
 
-    // Hide cursor over battlefield.
-    cache.battlefieldElem.style.cursor = "none";
+    // Hide cursor over meadow.
+    cache.levelMeadowElem.style.cursor = "none";
 });
 
 /**
- * Create the level where player spends gold on upgrades.
- * Switch to this level when player hits a shop pickup.
+ * Create the level where car spends gold on upgrades.
+ * Switch to this level when car hits a shop pickup.
  */
 
 export const initShop: () => void = GAME((cache: GameCache) => {});
@@ -239,7 +247,7 @@ function spawnEntity({
     // Hide cursor over entity.
     newEntity.elem.style.cursor = "none";
 
-    // Set z-index under player.
+    // Set z-index under car.
     newEntity.elem.style.zIndex = "1";
 
     return newEntity;
@@ -251,7 +259,7 @@ function spawnEntity({
 
 export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
     setInterval(() => {
-        if (cache.currLevel != "battlefield") return;
+        if (cache.level != "meadow") return;
         if (cache.enemies.length >= EnemyConfig.spawnCap) return;
 
         let newEnemy: Enemy = spawnEntity({
@@ -293,7 +301,7 @@ export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
                 if (cache.pickupCounts[key] >= PickupConfig.spawnCaps[key])
                     continue;
                 // Dont spawn shop pickups on shop level. Reroll.
-                if (key == "shop" && cache.currLevel == "shop") continue;
+                if (key == "shop" && cache.level == "shop") continue;
 
                 // Valid roll found.
                 pickupType = PickupTypes[key];
@@ -329,24 +337,24 @@ export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
  * Kills enemies on collision.
  */
 
-export const initPlayer: () => void = GAME((cache: GameCache) => {
+export const initCar: () => void = GAME((cache: GameCache) => {
     // Set position.
-    cache.playerElem.style.position = "absolute";
-    cache.playerElem.style.left = cache.playerLocation.xVW.toString() + "vw";
-    cache.playerElem.style.top = cache.playerLocation.yVH.toString() + "vh";
+    cache.carElem.style.position = "absolute";
+    cache.carElem.style.left = cache.carLocation.xVW.toString() + "vw";
+    cache.carElem.style.top = cache.carLocation.yVH.toString() + "vh";
 
     // Set sprite.
-    cache.playerElem.style.backgroundImage =
+    cache.carElem.style.backgroundImage =
         'url("' + TextureConfig.Prefix + "0167" + TextureConfig.Suffix + '")';
 
     // Crop and scale sprite.
-    cache.playerElem.style.backgroundRepeat = "no-repeat";
-    cache.playerElem.style.backgroundSize = "100% 100%";
+    cache.carElem.style.backgroundRepeat = "no-repeat";
+    cache.carElem.style.backgroundSize = "100% 100%";
 
     // Set sprite origin to center, instead of top left.
-    cache.playerElem.style.transform = "translate(-50%, -50%) rotate(270deg)";
+    cache.carElem.style.transform = "translate(-50%, -50%) rotate(270deg)";
 
-    /** Do something when player collides. */
+    /** Do something when car collides. */
     function checkCollision({
         entities,
         entityWidthVW,
@@ -364,10 +372,10 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
             const entity = entities[i];
 
             if (
-                cache.playerLocation.xVW > entity.xVW - entityWidthVW &&
-                cache.playerLocation.xVW < entity.xVW + entityWidthVW &&
-                cache.playerLocation.yVH > entity.yVH - entityHeightVH &&
-                cache.playerLocation.yVH < entity.yVH + entityHeightVH
+                cache.carLocation.xVW > entity.xVW - entityWidthVW &&
+                cache.carLocation.xVW < entity.xVW + entityWidthVW &&
+                cache.carLocation.yVH > entity.yVH - entityHeightVH &&
+                cache.carLocation.yVH < entity.yVH + entityHeightVH
             ) {
                 doCollision(entity);
 
@@ -381,8 +389,8 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
 
     // CAR GO VROOM
     setInterval(() => {
-        if (--cache.playerLocation.yVH < 0) cache.playerLocation.yVH = 100;
-        cache.playerElem.style.top = cache.playerLocation.yVH.toString() + "vh";
+        if (--cache.carLocation.yVH < 0) cache.carLocation.yVH = 100;
+        cache.carElem.style.top = cache.carLocation.yVH.toString() + "vh";
 
         // Kill enemies on collision.
         checkCollision({
@@ -391,8 +399,8 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
             entityHeightVH: EnemyConfig.heightVH,
             doCollision: () => {
                 // +1 gold per kill
-                let gold = Number(cache.goldCounterElem.innerHTML);
-                cache.goldCounterElem.innerHTML = (++gold).toString();
+                let gold = Number(cache.uiGoldElem.innerHTML);
+                cache.uiGoldElem.innerHTML = (++gold).toString();
             },
         });
 
@@ -409,15 +417,14 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
                 }
             },
         });
-    }, PlayerConfig.moveTimeMS);
+    }, CarConfig.moveTimeMS);
 
-    // Bind player horizontal position to mouse.
+    // Bind car horizontal position to mouse.
     document.addEventListener("mousemove", (event) => {
-        cache.playerLocation.xVW = pxToVW(event.clientX);
-        cache.playerElem.style.left =
-            cache.playerLocation.xVW.toString() + "vw";
+        cache.carLocation.xVW = pxToVW(event.clientX);
+        cache.carElem.style.left = cache.carLocation.xVW.toString() + "vw";
     });
 
     // Hide cursor over car.
-    cache.playerElem.style.cursor = "none";
+    cache.carElem.style.cursor = "none";
 });

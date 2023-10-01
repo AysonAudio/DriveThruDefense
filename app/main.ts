@@ -1,6 +1,6 @@
 import * as Game from "./game.js";
 
-Game.initBattlefield();
+Game.initMeadowLevel();
 Game.initEnemySpawner();
 Game.initPickupSpawner();
-Game.initPlayer();
+Game.initCar();
