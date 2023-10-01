@@ -363,7 +363,11 @@ export const initCar: () => void = GAME((cache: GameCache) => {
     // Set sprite origin to center, instead of top left.
     cache.carElem.style.transform = "translate(-50%, -50%) rotate(270deg)";
 
-    /** Do something when car collides. */
+    /**
+     * Helper Function \
+     * Do something when car collides.
+     */
+
     function checkCollision({
         entities,
         entityWidthVW,
