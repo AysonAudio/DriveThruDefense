@@ -20,7 +20,7 @@ const BattlefieldConfig = {
 const EnemyConfig = {
     widthVW: 4,
     heightVH: 4,
-    maxSpawns: 15,
+    spawnCap: 15,
     spawnTimeMS: 1000,
 } as const;
 
@@ -28,8 +28,20 @@ const PickupConfig = {
     widthVW: 4,
     heightVH: 4,
     spawnTimeMS: 2000,
-    shopChance: 0.4,
+    spawnChances: {
+        shop: 0.4,
+    },
+    spawnCaps: {
+        shop: 1,
+    },
+    bgCSS: {
+        shop: "yellow",
+    },
 } as const;
+
+// ##################################################################### //
+// ############################### Enums ############################### //
+// ##################################################################### //
 
 const PickupTypes = {
     shop: "shop",
@@ -57,11 +69,15 @@ type LevelName = (typeof Levels)[keyof typeof Levels];
 type GameCache = {
     levelsElem: HTMLDivElement;
     battlefieldElem: HTMLDivElement;
+    goldCounterElem: HTMLSpanElement;
     playerElem: HTMLDivElement;
     playerLocation: { xVW: number; yVH: number };
+    currLevel: LevelName;
     enemies: Enemy[];
     pickups: Pickup[];
-    goldCounterElem: HTMLSpanElement;
+    pickupCounts: {
+        [key in PickupType]: number;
+    };
 };
 
 /** A function that needs access to a global game variable. */
@@ -79,18 +95,24 @@ type GameFunc<Return> = (cache: GameCache, ...args) => Return;
 const GAME: <Return>(func: GameFunc<Return>) => (...args) => Return = (() => {
     const globalGameCache: GameCache = {
         levelsElem: document.body.querySelector("#levels"),
+        goldCounterElem: document.body.querySelector("#gold-counter"),
         battlefieldElem: document.body.querySelector("#battlefield"),
         playerElem: document.body.querySelector("#car"),
         playerLocation: { xVW: 0, yVH: 0 },
-        pickups: [],
+        currLevel: "battlefield",
         enemies: [],
-        goldCounterElem: document.body.querySelector("#gold-counter"),
+        pickups: [],
+        pickupCounts: {
+            shop: 0,
+        },
     };
 
     return (func) => {
         return (...args) => func(globalGameCache, ...args);
     };
 })();
+
+// ------------------------
 
 /**
  * @param min Inclusive.
@@ -124,6 +146,7 @@ function pxToVH(px: number): number {
 
 const switchLevel: (levelName: LevelName) => void = GAME(
     (cache: GameCache, levelName: LevelName) => {
+        cache.currLevel = levelName;
         for (const levelElem of cache.levelsElem.children) {
             if (levelElem.id == levelName) levelElem.classList.remove("off");
             else levelElem.classList.add("off");
@@ -175,6 +198,8 @@ export const initBattlefield: () => void = GAME((cache: GameCache) => {
  * Switch to this level when player hits a shop pickup.
  */
 
+export const initShop: () => void = GAME((cache: GameCache) => {});
+
 // ##################################################################### //
 // ############################### Spawns ############################## //
 // ##################################################################### //
@@ -215,7 +240,7 @@ function spawnEntity({
     newEntity.elem.style.cursor = "none";
 
     // Set z-index under player.
-    newEntity.elem.style.zIndex = "1;";
+    newEntity.elem.style.zIndex = "1";
 
     return newEntity;
 }
@@ -226,13 +251,14 @@ function spawnEntity({
 
 export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
     setInterval(() => {
-        if (cache.enemies.length >= EnemyConfig.maxSpawns) return;
+        if (cache.enemies.length >= EnemyConfig.spawnCap) return;
 
         let newEnemy: Enemy = spawnEntity({
             bgCSS: "darkgreen",
             widthVW: EnemyConfig.widthVW,
             heightVH: EnemyConfig.heightVH,
         });
+
         cache.enemies.push(newEnemy);
     }, EnemyConfig.spawnTimeMS);
 });
@@ -245,19 +271,51 @@ export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
 
 export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
     const pickupTypes = Object.keys(PickupTypes) as PickupType[];
+    let pickupChances = { ...PickupConfig.spawnChances };
+    let totalChance = 0;
 
-    setInterval(() => {
-        let newPickup: Pickup = {
-            ...spawnEntity({
-                bgCSS: "yellow",
-                widthVW: PickupConfig.widthVW,
-                heightVH: PickupConfig.heightVH,
-            }),
-            type: pickupTypes[getRandomInt(0, pickupTypes.length)],
-        };
+    // Scale chances to 1.0.
+    for (const key in pickupChances) totalChance += pickupChances[key];
+    for (const key in pickupChances) pickupChances[key] /= totalChance;
 
-        cache.pickups.push(newPickup);
-    }, PickupConfig.spawnTimeMS);
+    // Spawn pickups on a loop.
+    setInterval(
+        (totalChance: number) => {
+            let diceRoll = Math.random();
+            let pickupType: PickupType;
+
+            // Roll random type.
+            for (const key in pickupChances) {
+                // Match dice roll with corresponding pickup type.
+                if ((totalChance -= pickupChances[key]) > diceRoll) continue;
+                // That pickup already maxed. Reroll.
+                if (cache.pickupCounts[key] >= PickupConfig.spawnCaps[key])
+                    continue;
+                // Dont spawn shop pickups on shop level. Reroll.
+                if (key == "shop" && cache.currLevel == "shop") continue;
+
+                // Valid roll found.
+                pickupType = PickupTypes[key];
+            }
+
+            // No valid rolls found.
+            if (!pickupType) return;
+
+            // Spawn a new entity.
+            cache.pickups.push({
+                ...spawnEntity({
+                    bgCSS: "yellow",
+                    widthVW: PickupConfig.widthVW,
+                    heightVH: PickupConfig.heightVH,
+                }),
+                type: pickupType,
+            });
+            cache.pickupCounts[pickupType]++;
+        },
+
+        PickupConfig.spawnTimeMS,
+        totalChance
+    );
 });
 
 // ##################################################################### //
@@ -320,7 +378,7 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
         }
     }
 
-    // CAR GO VROOM (vertically).
+    // CAR GO VROOM
     setInterval(() => {
         if (--cache.playerLocation.yVH < 0) cache.playerLocation.yVH = 100;
         cache.playerElem.style.top = cache.playerLocation.yVH.toString() + "vh";
@@ -343,6 +401,7 @@ export const initPlayer: () => void = GAME((cache: GameCache) => {
             entityWidthVW: PickupConfig.widthVW,
             entityHeightVH: PickupConfig.heightVH,
             doCollision: (pickup: Pickup) => {
+                cache.pickupCounts[pickup.type]--;
                 switch (pickup.type) {
                     case "shop":
                         switchLevel("shop");
