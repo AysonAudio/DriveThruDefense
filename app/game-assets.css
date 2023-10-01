@@ -21,6 +21,9 @@
 #car {
     z-index: 2;
 }
+#entities > * > * {
+    z-index: 1;
+}
 
 /* Stack all levels in middle of screen. */
 #levels {

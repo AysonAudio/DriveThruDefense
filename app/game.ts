@@ -159,6 +159,8 @@ function pxToVH(px: number): number {
 const switchLevel: (levelName: LevelName) => void = GAME(
     (cache: GameCache, levelName: LevelName) => {
         cache.level = levelName;
+
+        // Unhide active level. Hide all other levels.
         for (const levelElem of cache.levelsParentElem.children) {
             if (levelElem.id == levelName) levelElem.classList.remove("off");
             else levelElem.classList.add("off");
@@ -253,9 +255,6 @@ function spawnEntity({
     newEntity.elem.style.position = "absolute";
     newEntity.elem.style.left = newEntity.xVW.toString() + "vw";
     newEntity.elem.style.top = newEntity.yVH.toString() + "vh";
-
-    // Set z-index under car.
-    newEntity.elem.style.zIndex = "1";
 
     return newEntity;
 }
