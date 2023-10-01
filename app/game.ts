@@ -251,6 +251,7 @@ function spawnEntity({
 
 export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
     setInterval(() => {
+        if (cache.currLevel != "battlefield") return;
         if (cache.enemies.length >= EnemyConfig.spawnCap) return;
 
         let newEnemy: Enemy = spawnEntity({
