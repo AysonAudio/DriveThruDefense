@@ -3,26 +3,38 @@
     grid-template: 10vh 80vh 10vh / 10vw 80vw 10vw;
 }
 
-/* Init style */
+/* ====================================================== */
+/* ======================= Player ======================= */
+/* ====================================================== */
+
 #car {
     width: 5vw;
     height: 5vh;
 }
 
-#shop {
-    background: blue;
-}
-
 /* Set car above level and below edges. */
 .edge {
     z-index: 3;
-    background-color: darkcyan;
+    background: darkcyan;
 }
 #car {
     z-index: 2;
 }
 #entities > * > * {
     z-index: 1;
+}
+
+/* ====================================================== */
+/* ======================= Levels ======================= */
+/* ====================================================== */
+
+#shop {
+    background: blue;
+}
+
+/* Switch levels by hiding and unhiding. */
+.off {
+    visibility: hidden;
 }
 
 /* Stack all levels in middle of screen. */
@@ -37,14 +49,19 @@
     left: 0;
 }
 
-/* Switch levels by hiding and unhiding. */
-.off {
-    visibility: hidden;
-}
+/* ====================================================== */
+/* ========================= UI ========================= */
+/* ====================================================== */
 
-/* Set resource counters font. */
 #gold {
-    margin-left: 5%;
     font-family: "Young Serif", serif;
     font-size: 6vh;
+    margin-left: 5vw;
+}
+
+#player-hp {
+    background-color: firebrick;
+    width: 48vw;
+    height: 6vh;
+    margin-left: 5vw;
 }
