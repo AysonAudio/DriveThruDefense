@@ -17,7 +17,9 @@ const EnemyConfig = {
     widthVW: 4,
     heightVH: 4,
     spawnCap: 15,
-    spawnTimeMS: 1000,
+    spawnTimesMS: {
+        cow: 1000,
+    },
 } as const;
 
 const PickupConfig = {
@@ -47,6 +49,10 @@ const MeadowConfig = {
 // ############################### Enums ############################### //
 // ##################################################################### //
 
+const EnemyTypes = {
+    cow: "cow",
+} as const;
+
 const PickupTypes = {
     shop: "shop",
 } as const;
@@ -60,9 +66,11 @@ const Levels = {
 // ############################### Types ############################### //
 // ##################################################################### //
 
+/** An object in a level. */
 type Entity = { elem: HTMLDivElement; xVW: number; yVH: number };
 
-type Enemy = Entity & {};
+type EnemyType = (typeof EnemyTypes)[keyof typeof EnemyTypes];
+type Enemy = Entity & { type: EnemyType };
 
 type PickupType = (typeof PickupTypes)[keyof typeof PickupTypes];
 type Pickup = Entity & { type: PickupType };
@@ -260,29 +268,33 @@ function spawnEntity({
 }
 
 /**
- * Spawn an enemy periodically on meadow level.
+ * Start spawning all enemies on meadow level.
+ * - cow: harmless. +1 gold on kill.
  */
 
 export const initEnemySpawner: () => void = GAME((cache: GameCache) => {
-    setInterval(() => {
-        if (cache.level != "meadow") return;
-        if (cache.enemies.length >= EnemyConfig.spawnCap) return;
+    for (const type in EnemyTypes)
+        setInterval(() => {
+            if (cache.level != "meadow") return;
+            if (cache.enemies.length >= EnemyConfig.spawnCap) return;
 
-        let newEnemy: Enemy = spawnEntity({
-            bgCSS: "darkgreen",
-            widthVW: EnemyConfig.widthVW,
-            heightVH: EnemyConfig.heightVH,
-        });
+            let newEnemy: Enemy = {
+                ...spawnEntity({
+                    bgCSS: "darkgreen",
+                    widthVW: EnemyConfig.widthVW,
+                    heightVH: EnemyConfig.heightVH,
+                }),
+                type: type as EnemyType,
+            };
 
-        cache.enemies.push(newEnemy);
-        cache.enemiesParentElem.appendChild(newEnemy.elem);
-    }, EnemyConfig.spawnTimeMS);
+            cache.enemies.push(newEnemy);
+            cache.enemiesParentElem.appendChild(newEnemy.elem);
+        }, EnemyConfig.spawnTimesMS[type]);
 });
 
 /**
  * Spawn a pickup periodically.
- * List of pickups:
- * - Shop: Teleport to shop level.
+ * - shop: teleport to shop level.
  */
 
 export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
