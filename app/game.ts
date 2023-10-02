@@ -349,7 +349,7 @@ export const initPickupSpawner: () => void = GAME((cache: GameCache) => {
 });
 
 // ##################################################################### //
-// ############################## Offense ############################## //
+// ########################## Player Character ######################### //
 // ##################################################################### //
 
 /**
@@ -428,9 +428,7 @@ export const initCar: () => void = GAME((cache: GameCache) => {
                 entityWidthVW: EnemyConfig.widthVW,
                 entityHeightVH: EnemyConfig.heightVH,
                 doCollision: () => {
-                    // +1 gold per kill
-                    let gold = Number(cache.uiGoldElem.innerHTML);
-                    cache.uiGoldElem.innerHTML = (++gold).toString();
+                    addGold(10);
                 },
             });
 
@@ -458,8 +456,26 @@ export const initCar: () => void = GAME((cache: GameCache) => {
 });
 
 // ##################################################################### //
-// ############################## Defense ############################## //
+// ################################# UI ################################ //
 // ##################################################################### //
+
+/** Get player's current gold. */
+export const getGold: () => number = GAME((cache: GameCache) => {
+    return Number(cache.uiGoldElem.innerHTML);
+});
+
+/** Update UI. */
+export const setGold: (newAmount: number) => void = GAME(
+    (cache: GameCache, newAmount: number) => {
+        cache.uiGoldElem.innerHTML = newAmount.toString();
+    }
+);
+export const addGold: (addedAmount: number) => void = GAME(
+    (cache: GameCache, addedAmount: number) => {
+        let gold = Number(cache.uiGoldElem.innerHTML);
+        cache.uiGoldElem.innerHTML = (gold + addedAmount).toString();
+    }
+);
 
 /** Init player hp bar. */
 export const initPlayerHP: () => void = GAME((cache: GameCache) => {});

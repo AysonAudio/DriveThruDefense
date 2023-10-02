@@ -56,12 +56,10 @@
 #gold {
     font-family: "Young Serif", serif;
     font-size: 6vh;
-    margin-left: 5vw;
 }
 
 #player-hp {
     background-color: firebrick;
     width: 48vw;
     height: 6vh;
-    margin-left: 5vw;
 }
